@@ -31,11 +31,12 @@ function LinearGradientCard({ colors, angle = 45, className = "" }: LinearGradie
     if (gradientRef.current) {
       try {
         await exportGradient(gradientRef.current, { fileName: "linear-gradient.png", scale: 2 });
-      } catch (err: any) {
-        if (err.code === 'HTML2CANVAS_NOT_FOUND') {
+      } catch (err: unknown) {
+        const error = err as { code?: string; message?: string };
+        if (error?.code === 'HTML2CANVAS_NOT_FOUND') {
           alert('Export failed: html2canvas is not installed. Please install html2canvas to enable exporting gradients as PNG.');
         } else {
-          alert('Export failed: ' + (err.message || 'Unknown error.'));
+          alert('Export failed: ' + (error?.message || 'Unknown error.'));
         }
       }
     }

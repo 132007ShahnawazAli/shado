@@ -24,8 +24,10 @@ export async function exportGradient(
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     const img = new window.Image();
-    const width = node.width.baseVal.value || node.getBoundingClientRect().width;
-    const height = node.height.baseVal.value || node.getBoundingClientRect().height;
+    // Use getBoundingClientRect for consistent dimensions across all element types
+    const rect = node.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
     img.width = width * scale;
     img.height = height * scale;
     const canvas = document.createElement('canvas');
@@ -49,16 +51,16 @@ export async function exportGradient(
 
   // If HTML, use html2canvas (must be installed as a dependency)
   // This will rasterize the node, including SVG children
-  // @ts-ignore
+  // @ts-expect-error - html2canvas is dynamically loaded
   if (window.html2canvas) {
-    // @ts-ignore
+    // @ts-expect-error - html2canvas is dynamically loaded
     const canvas = await window.html2canvas(node, { scale });
     downloadCanvasAsPng(canvas, fileName);
     return;
   } else {
     // Graceful: throw a custom error for UI to catch
-    const error = new Error('Export failed: html2canvas not found. Please install html2canvas or ensure it is loaded on window.');
-    (error as any).code = 'HTML2CANVAS_NOT_FOUND';
+    const error = new Error('Export failed: html2canvas not found. Please install html2canvas or ensure it is loaded on window.') as Error & { code: string };
+    error.code = 'HTML2CANVAS_NOT_FOUND';
     throw error;
   }
 }
