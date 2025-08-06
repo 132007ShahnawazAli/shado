@@ -52,7 +52,7 @@ function getVariantStyles(variant: BlurryBlobCardProps["variant"], colors: strin
     case "light":
       return { backgroundColor: "inherit", blendMode: "normal", opacity: 1 };
     case "dark":
-      return { backgroundColor: "#0A0A0A", blendMode: "normal", opacity: 1 };
+      return { backgroundColor: "#0A0A0A", blendMode: "color-dodge", opacity: 1 };
     case "random":
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
       return { backgroundColor: randomColor, blendMode: "normal", opacity: 1 };
@@ -107,19 +107,22 @@ function BlurryBlobCard({ colors, className = "", variant = "dark" }: BlurryBlob
 
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const handleExport = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (svgRef.current) {
-      try {
-        await exportGradient(svgRef.current, { fileName: "blurry-blob-gradient.png", scale: 2 });
-      } catch (err: unknown) {
-        const error = err as { code?: string; message?: string };
-        if (error?.code === 'HTML2CANVAS_NOT_FOUND') {
-          alert('Export failed: html2canvas is not installed. Please install html2canvas to enable exporting gradients as PNG.');
-        } else {
-          alert('Export failed: ' + (error?.message || 'Unknown error.'));
-        }
-      }
+  const handleExport = async () => {
+    if (!svgRef.current) return;
+    
+    try {
+      await exportGradient(svgRef.current, { 
+        fileName: `blurry-blob-${Date.now()}.png`, 
+        scale: window.devicePixelRatio || 2 
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to export image. Please try again.';
+      
+      // Show user-friendly error message
+      alert(`Export failed: ${errorMessage}`);
     }
   };
 

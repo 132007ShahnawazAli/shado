@@ -28,17 +28,21 @@ function LinearGradientCard({ colors, angle = 45, className = "" }: LinearGradie
 
   const handleExport = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (gradientRef.current) {
-      try {
-        await exportGradient(gradientRef.current, { fileName: "linear-gradient.png", scale: 2 });
-      } catch (err: unknown) {
-        const error = err as { code?: string; message?: string };
-        if (error?.code === 'HTML2CANVAS_NOT_FOUND') {
-          alert('Export failed: html2canvas is not installed. Please install html2canvas to enable exporting gradients as PNG.');
-        } else {
-          alert('Export failed: ' + (error?.message || 'Unknown error.'));
-        }
-      }
+    if (!gradientRef.current) return;
+    
+    try {
+      await exportGradient(gradientRef.current, { 
+        fileName: `linear-gradient-${Date.now()}.png`, 
+        scale: window.devicePixelRatio || 2 
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to export image. Please try again.';
+      
+      // Show user-friendly error message
+      alert(`Export failed: ${errorMessage}`);
     }
   };
 

@@ -1,9 +1,34 @@
 // Shared export utility for exporting SVG/Canvas as high-res PNG
 // Supports retina export, preserves all SVG effects
 
+// Type declarations for html2canvas
+type Html2Canvas = (element: HTMLElement, options?: Html2CanvasOptions) => Promise<HTMLCanvasElement>;
+
+declare global {
+  interface Window {
+    html2canvas?: Html2Canvas;
+  }
+}
+
 export interface ExportGradientOptions {
   fileName?: string;
-  scale?: number; // e.g., 2 for retina
+  scale?: number;
+}
+
+// Type for html2canvas options
+interface Html2CanvasOptions {
+  scale?: number;
+  useCORS?: boolean;
+  allowTaint?: boolean;
+  backgroundColor?: string | null;
+  logging?: boolean;
+  foreignObjectRendering?: boolean;
+  onclone?: (document: Document, element: HTMLElement) => void;
+}
+
+// Type guard to check if an error is an Error object
+function isError(error: unknown): error is Error {
+  return error instanceof Error;
 }
 
 /**
@@ -49,19 +74,62 @@ export async function exportGradient(
     return;
   }
 
-  // If HTML, use html2canvas (must be installed as a dependency)
-  // This will rasterize the node, including SVG children
-  // @ts-expect-error - html2canvas is dynamically loaded
-  if (window.html2canvas) {
-    // @ts-expect-error - html2canvas is dynamically loaded
-    const canvas = await window.html2canvas(node, { scale });
-    downloadCanvasAsPng(canvas, fileName);
-    return;
+  // Dynamically import html2canvas for better compatibility
+  let html2canvas: Html2Canvas;
+  
+  // Try to use html2canvas from window or import it
+  if (typeof window.html2canvas === 'function') {
+    html2canvas = window.html2canvas;
   } else {
-    // Graceful: throw a custom error for UI to catch
-    const error = new Error('Export failed: html2canvas not found. Please install html2canvas or ensure it is loaded on window.') as Error & { code: string };
-    error.code = 'HTML2CANVAS_NOT_FOUND';
-    throw error;
+    try {
+      const html2canvasModule = await import('html2canvas');
+      html2canvas = html2canvasModule.default;
+    } catch (importError) {
+      throw new Error('Failed to load html2canvas. Please ensure it is installed.');
+    }
+  }
+  
+  // Create a clone of the node to avoid affecting the original
+  const clone = node.cloneNode(true) as HTMLElement;
+  clone.style.visibility = 'hidden';
+  document.body.appendChild(clone);
+  
+  try {
+    // Configure html2canvas options with proper types
+    const options: Html2CanvasOptions = {
+      scale: scale || 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      logging: true, // Enable for debugging
+      foreignObjectRendering: true,
+      onclone: (_: Document, element: HTMLElement) => {
+        // Ensure the cloned node has the same dimensions
+        const rect = node.getBoundingClientRect();
+        element.style.width = `${rect.width}px`;
+        element.style.height = `${rect.height}px`;
+        element.style.visibility = 'visible';
+      }
+    };
+    
+    const canvas = await html2canvas(clone, options);
+    downloadCanvasAsPng(canvas, fileName);
+  } catch (error) {
+    console.error('Export failed:', error);
+    
+    let errorMessage = 'Failed to export image. ';
+    if (isError(error)) {
+      errorMessage += error.message;
+    }
+    
+    const exportError = new Error(errorMessage) as Error & { code: string };
+    exportError.code = 'EXPORT_FAILED';
+    throw exportError;
+  } finally {
+    // Clean up the cloned node
+    if (document.body.contains(clone)) {
+      document.body.removeChild(clone);
+    }
   }
 }
 
