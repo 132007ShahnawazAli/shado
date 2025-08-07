@@ -74,7 +74,10 @@ const GradientPreview = React.forwardRef<HTMLDivElement, GradientPreviewProps>((
   }, []);
 
   // Process gradient colors for consistent handling
-  const processedColors = useMemo(() => processGradientColors(colors), [colors]);
+  const processedColors = useMemo(() => {
+    const result = processGradientColors(colors);
+    return Array.isArray(result) ? result : [result];
+  }, [colors]);
 
   // Calculate gradient style based on type
   const gradientStyle = useMemo(() => {

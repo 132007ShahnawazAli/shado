@@ -90,6 +90,8 @@ const GradientExporter: React.FC<GradientExporterProps> = ({
         height={height}
         onExportStart={handleExportStart}
         onExportComplete={handleExportComplete}
+        type="linear" // or "blob" if you want to support blobs, or make this a prop
+        colors={["#000000", "#ffffff"]} // TODO: Replace with actual colors from context/props
       />
 
       {/* Success toast */}

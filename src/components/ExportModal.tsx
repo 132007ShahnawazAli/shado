@@ -18,6 +18,9 @@ interface ExportModalProps {
   height: number;
   variant?: string;
   blobs?: Array<{ path: string; color: string }>;
+  elementRef?: React.RefObject<HTMLElement | SVGElement | HTMLDivElement | null>;
+  onExportStart?: () => void;
+  onExportComplete?: (success: boolean) => void;
 }
 
 const ExportModal: React.FC<ExportModalProps> = ({
@@ -30,6 +33,9 @@ const ExportModal: React.FC<ExportModalProps> = ({
   height,
   variant,
   blobs,
+  elementRef,
+  onExportStart,
+  onExportComplete,
 }) => {
   const [scale, setScale] = useState<ScaleFactor>(1);
   const [format, setFormat] = useState<FormatType>('PNG');
@@ -163,6 +169,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
 
   const handleExport = async () => {
     if (isExporting) return;
+    if (onExportStart) onExportStart();
     setIsExporting(true);
     setExportProgress(0);
     try {
@@ -177,7 +184,10 @@ const ExportModal: React.FC<ExportModalProps> = ({
         variant,
         blobs,
         fileName: `gradient-${type}`,
-        onComplete: () => setExportProgress(100),
+        onComplete: (success: boolean) => {
+          setExportProgress(100);
+          if (onExportComplete) onExportComplete(success);
+        },
       });
       setIsExporting(false);
       setExportProgress(100);
@@ -188,6 +198,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
     } catch (error) {
       setIsExporting(false);
       setExportProgress(0);
+      if (onExportComplete) onExportComplete(false);
       alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
