@@ -131,7 +131,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
         'backgroundImage',
       ];
       colorProps.forEach((prop) => {
-        let val = style.getPropertyValue(prop);
+        const val = style.getPropertyValue(prop);
         if (val) {
           try {
             // For gradients, process all colors in the string
