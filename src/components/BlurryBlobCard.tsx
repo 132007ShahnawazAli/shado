@@ -135,22 +135,25 @@ function BlurryBlobCard({
         "w-full h-64 rounded-lg shadow-lg border flex items-center justify-center relative group",
         className
       )}
+      style={{ overflow: 'hidden' }}
     >
-      <div className="absolute inset-0 w-full h-full rounded-lg transition-colors duration-300" style={bgStyle} />
-      <svg ref={svgRef} className="absolute inset-0 w-full h-full">
-        {blobs.map((blob, index) => (
-          <path
-            key={index}
-            d={blob.path}
-            fill={blob.color}
-            style={{
-              filter: "blur(40px)",
-              mixBlendMode: bgStyle.blendMode as React.CSSProperties["mixBlendMode"],
-              opacity: bgStyle.opacity
-            }}
-          />
-        ))}
-      </svg>
+      <div className="absolute inset-0 w-full h-full rounded-lg overflow-hidden">
+        <div className="absolute inset-0 w-full h-full rounded-lg transition-colors duration-300" style={bgStyle} />
+        <svg ref={svgRef} className="absolute inset-0 w-full h-full rounded-lg pointer-events-none">
+          {blobs.map((blob, index) => (
+            <path
+              key={index}
+              d={blob.path}
+              fill={blob.color}
+              style={{
+                filter: "blur(40px)",
+                mixBlendMode: bgStyle.blendMode as React.CSSProperties["mixBlendMode"],
+                opacity: bgStyle.opacity
+              }}
+            />
+          ))}
+        </svg>
+      </div>
       <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
         <div className="flex justify-end gap-3">
           <ShuffleButton onClick={handleShuffle} aria-label="Shuffle blobs" />
