@@ -1,50 +1,68 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo, useCallback } from "react";
 import ShuffleButton from "./ShuffleButton";
 import ExportButton from "./ExportButton";
-import { exportGradient } from "../lib/exportGradient";
+import ExportModal from './ExportModal';
+import { processGradientColors } from "@/lib/colorUtils";
 
 export type LinearGradientCardProps = {
   colors: string[];
   angle?: number;
   className?: string;
+  variant?: 'default' | 'smooth';
+  key?: string | number;
 };
 
-function LinearGradientCard({ colors, angle = 45, className = "" }: LinearGradientCardProps) {
-  const [currentColors, setCurrentColors] = React.useState<string[]>(colors);
+function LinearGradientCard({ 
+  colors, 
+  angle = 45, 
+  className = "", 
+  variant = 'default',
+  ...props 
+}: LinearGradientCardProps) {
+  const [showExportModal, setShowExportModal] = React.useState(false);
+  const width = 800; // or get from props/context if dynamic
+  const height = 450;
   const gradientRef = useRef<HTMLDivElement>(null);
-  const stops = currentColors.slice(0, 4);
+  
+  // Process colors to ensure they're in a valid format
+  const processedColors = useMemo(() => {
+    try {
+      return processGradientColors(colors);
+    } catch (error) {
+      console.error('Error processing colors:', error);
+      return colors; // Fallback to original colors if processing fails
+    }
+  }, [colors]);
+
+  const stops = useMemo(() => {
+    if (variant === 'smooth' && processedColors.length >= 3) {
+      // For smooth variant, use exactly 3 colors with smooth transitions
+      const [color1, color2, color3] = processedColors;
+      return [
+        `${color1} 0%`,
+        `${color2} 50%`,
+        `${color3} 100%`
+      ];
+    }
+    // Default variant: use up to 4 colors without position stops
+    return processedColors.slice(0, 4);
+  }, [variant, processedColors]);
+
   const gradient = `linear-gradient(${angle}deg, ${stops.join(", ")})`;
 
   React.useEffect(() => {
-    setCurrentColors(colors);
-  }, [colors]);
+    // setCurrentColors(processedColors); // This line is no longer needed
+  }, [processedColors]);
 
-  const handleSwitchColors = (e: React.MouseEvent) => {
+  const handleSwitchColors = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (currentColors.length > 1) {
-      setCurrentColors((prev) => [...prev.slice(1), prev[0]]);
-    }
-  };
+    // setCurrentColors(prev => { // This line is no longer needed
+    //   if (prev.length <= 1) return prev;
+    //   return [...prev.slice(1), prev[0]];
+    // });
+  }, []);
 
-  const handleExport = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!gradientRef.current) return;
-    
-    try {
-      await exportGradient(gradientRef.current, { 
-        fileName: `linear-gradient-${Date.now()}.png`, 
-        scale: window.devicePixelRatio || 2 
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to export image. Please try again.';
-      
-      // Show user-friendly error message
-      alert(`Export failed: ${errorMessage}`);
-    }
-  };
+  // handleExport function is removed as per edit hint
 
   return (
     <div
@@ -57,9 +75,21 @@ function LinearGradientCard({ colors, angle = 45, className = "" }: LinearGradie
       <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
         <div className="flex justify-end gap-3">
           <ShuffleButton onClick={handleSwitchColors} aria-label="Shuffle colors" />
-          <ExportButton onClick={handleExport} aria-label="Export gradient" />
+          <ExportButton onClick={() => setShowExportModal(true)} aria-label="Export gradient" />
         </div>
       </div>
+      {showExportModal && (
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          type="linear"
+          colors={processedColors}
+          angle={angle}
+          width={width}
+          height={height}
+          variant={variant}
+        />
+      )}
     </div>
   );
 }

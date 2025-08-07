@@ -32,118 +32,97 @@ function isError(error: unknown): error is Error {
 }
 
 /**
- * Exports a given SVG or HTMLElement node as a high-resolution PNG.
- * Handles SVG rendering and preserves filters, gradients, and blend modes.
- * @param node HTMLElement or SVGElement to export
- * @param options Optional: fileName and scale
+ * Professional canvas-based export for gradients (linear, blob)
+ * @param {Object} params - Gradient export parameters
+ * @param {'linear'|'blob'} params.type - Gradient type
+ * @param {string[]} params.colors - Array of color stops
+ * @param {number} params.angle - Angle for linear gradients
+ * @param {number} params.width - Export width
+ * @param {number} params.height - Export height
+ * @param {number} params.scale - Scale factor (1, 2, 3, ...)
+ * @param {string} params.format - 'png' | 'jpg' | 'webp'
+ * @param {string} [params.variant] - Variant for blob gradients
+ * @param {Array<{path: string, color: string}>} [params.blobs] - Blob data for blob gradients
+ * @param {function} [params.onComplete] - Optional callback after export
  */
-export async function exportGradient(
-  node: HTMLElement | SVGElement,
-  options: ExportGradientOptions = {}
-) {
-  const { fileName = 'gradient.png', scale = 2 } = options;
+export async function exportGradientToCanvas({
+  type,
+  colors,
+  angle = 90,
+  width,
+  height,
+  scale = 2,
+  format = 'png',
+  variant,
+  blobs,
+  fileName = 'gradient-export',
+  onComplete
+}) {
+  const exportWidth = width * scale;
+  const exportHeight = height * scale;
+  const canvas = document.createElement('canvas');
+  canvas.width = exportWidth;
+  canvas.height = exportHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to get canvas context');
 
-  // If SVG, serialize and render to canvas
-  if (node instanceof SVGElement) {
-    const svgData = new XMLSerializer().serializeToString(node);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new window.Image();
-    // Use getBoundingClientRect for consistent dimensions across all element types
-    const rect = node.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    img.width = width * scale;
-    img.height = height * scale;
-    const canvas = document.createElement('canvas');
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Failed to get canvas context');
-    await new Promise((resolve, reject) => {
-      img.onload = () => {
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
-        resolve(null);
-      };
-      img.onerror = reject;
-      img.src = url;
+  if (type === 'linear') {
+    // Linear gradient
+    const rad = (angle * Math.PI) / 180;
+    const x0 = exportWidth / 2 + (exportWidth / 2) * Math.cos(rad + Math.PI);
+    const y0 = exportHeight / 2 + (exportHeight / 2) * Math.sin(rad + Math.PI);
+    const x1 = exportWidth / 2 + (exportWidth / 2) * Math.cos(rad);
+    const y1 = exportHeight / 2 + (exportHeight / 2) * Math.sin(rad);
+    const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+    colors.forEach((color, i) => {
+      grad.addColorStop(i / (colors.length - 1), color);
     });
-    downloadCanvasAsPng(canvas, fileName);
-    return;
-  }
-
-  // Dynamically import html2canvas for better compatibility
-  let html2canvas: Html2Canvas;
-  
-  // Try to use html2canvas from window or import it
-  if (typeof window.html2canvas === 'function') {
-    html2canvas = window.html2canvas;
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, exportWidth, exportHeight);
+  } else if (type === 'blob' && blobs && blobs.length > 0) {
+    // Blurry blob gradient
+    // Optionally fill background
+    if (variant === 'dark') {
+      ctx.fillStyle = '#0A0A0A';
+      ctx.fillRect(0, 0, exportWidth, exportHeight);
+    } else if (variant === 'light') {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, exportWidth, exportHeight);
+    }
+    ctx.save();
+    ctx.filter = 'blur(40px)';
+    blobs.forEach(blob => {
+      const path = new Path2D(blob.path);
+      ctx.fillStyle = blob.color;
+      ctx.globalAlpha = 0.9;
+      ctx.fill(path);
+    });
+    ctx.restore();
   } else {
-    try {
-      const html2canvasModule = await import('html2canvas');
-      html2canvas = html2canvasModule.default;
-    } catch (importError) {
-      throw new Error('Failed to load html2canvas. Please ensure it is installed.');
-    }
+    // fallback: fill with first color
+    ctx.fillStyle = colors[0] || '#fff';
+    ctx.fillRect(0, 0, exportWidth, exportHeight);
   }
-  
-  // Create a clone of the node to avoid affecting the original
-  const clone = node.cloneNode(true) as HTMLElement;
-  clone.style.visibility = 'hidden';
-  document.body.appendChild(clone);
-  
-  try {
-    // Configure html2canvas options with proper types
-    const options: Html2CanvasOptions = {
-      scale: scale || 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: null,
-      logging: true, // Enable for debugging
-      foreignObjectRendering: true,
-      onclone: (_: Document, element: HTMLElement) => {
-        // Ensure the cloned node has the same dimensions
-        const rect = node.getBoundingClientRect();
-        element.style.width = `${rect.width}px`;
-        element.style.height = `${rect.height}px`;
-        element.style.visibility = 'visible';
-      }
-    };
-    
-    const canvas = await html2canvas(clone, options);
-    downloadCanvasAsPng(canvas, fileName);
-  } catch (error) {
-    console.error('Export failed:', error);
-    
-    let errorMessage = 'Failed to export image. ';
-    if (isError(error)) {
-      errorMessage += error.message;
-    }
-    
-    const exportError = new Error(errorMessage) as Error & { code: string };
-    exportError.code = 'EXPORT_FAILED';
-    throw exportError;
-  } finally {
-    // Clean up the cloned node
-    if (document.body.contains(clone)) {
-      document.body.removeChild(clone);
-    }
-  }
-}
 
-function downloadCanvasAsPng(canvas: HTMLCanvasElement, fileName: string) {
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-    }, 100);
-  }, 'image/png');
+  // Download
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return reject(new Error('Failed to create image blob'));
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${fileName}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+          onComplete?.(true);
+          resolve(true);
+        }, 100);
+      },
+      `image/${format}`,
+      format === 'jpg' ? 0.92 : format === 'webp' ? 0.85 : 1
+    );
+  });
 }

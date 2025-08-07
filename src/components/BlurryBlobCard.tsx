@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import ShuffleButton from "./ShuffleButton";
 import ExportButton from "./ExportButton";
-import { exportGradient } from "../lib/exportGradient";
+import ExportModal from './ExportModal';
 import { cn } from "@/lib/utils";
+import { processGradientColors } from "@/lib/colorUtils";
 
 export type BlurryBlobCardProps = {
   colors: string[];
   className?: string;
   variant?: "light" | "dark" | "random";
+  key?: string | number;
 };
 
 const regions = [
@@ -52,7 +54,7 @@ function getVariantStyles(variant: BlurryBlobCardProps["variant"], colors: strin
     case "light":
       return { backgroundColor: "inherit", blendMode: "normal", opacity: 1 };
     case "dark":
-      return { backgroundColor: "#0A0A0A", blendMode: "color-dodge", opacity: 1 };
+      return { backgroundColor: "#0A0A0A", blendMode: "lighten", opacity: 1 };
     case "random":
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
       return { backgroundColor: randomColor, blendMode: "normal", opacity: 1 };
@@ -66,10 +68,29 @@ function generateBlobPath(x: number, y: number, size: number) {
   return `M ${x} ${y} m ${-radius} 0 a ${radius} ${radius} 0 1 0 ${radius * 2} 0 a ${radius} ${radius} 0 1 0 ${-radius * 2} 0`;
 }
 
-function BlurryBlobCard({ colors, className = "", variant = "dark" }: BlurryBlobCardProps) {
+function BlurryBlobCard({ 
+  colors: originalColors, 
+  className = "", 
+  variant = "dark",
+  ...props 
+}: BlurryBlobCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [blobs, setBlobs] = useState<Array<{ path: string; color: string }>>([]);
+  
+  // Process colors to ensure they're in a valid format
+  const colors = useMemo(() => {
+    try {
+      return processGradientColors(originalColors);
+    } catch (error) {
+      console.error('Error processing colors:', error);
+      return originalColors; // Fallback to original colors if processing fails
+    }
+  }, [originalColors]);
+  
   const [bgStyle, setBgStyle] = useState(getVariantStyles(variant, colors));
+  const [showExportModal, setShowExportModal] = useState(false);
+  const width = 800; // or get from props/context if dynamic
+  const height = 450;
 
   const generateBlobs = useCallback(() => {
     const container = containerRef.current;
@@ -107,25 +128,6 @@ function BlurryBlobCard({ colors, className = "", variant = "dark" }: BlurryBlob
 
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const handleExport = async () => {
-    if (!svgRef.current) return;
-    
-    try {
-      await exportGradient(svgRef.current, { 
-        fileName: `blurry-blob-${Date.now()}.png`, 
-        scale: window.devicePixelRatio || 2 
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to export image. Please try again.';
-      
-      // Show user-friendly error message
-      alert(`Export failed: ${errorMessage}`);
-    }
-  };
-
   return (
     <div
       ref={containerRef}
@@ -152,9 +154,21 @@ function BlurryBlobCard({ colors, className = "", variant = "dark" }: BlurryBlob
       <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
         <div className="flex justify-end gap-3">
           <ShuffleButton onClick={handleShuffle} aria-label="Shuffle blobs" />
-          <ExportButton onClick={handleExport} aria-label="Export gradient" />
+          <ExportButton onClick={() => setShowExportModal(true)} aria-label="Export gradient" />
         </div>
       </div>
+      {showExportModal && (
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          type="blob"
+          colors={colors}
+          width={width}
+          height={height}
+          variant={variant}
+          blobs={blobs}
+        />
+      )}
     </div>
   );
 }
