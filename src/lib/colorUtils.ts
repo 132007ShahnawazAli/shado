@@ -9,11 +9,6 @@ type RGBColor = {
   b: number;
 };
 
-type LABColor = {
-  l: number;
-  a: number;
-  b: number;
-};
 
 /**
  * Converts LAB color to RGB
@@ -43,9 +38,9 @@ export const labToRgb = (l: number, a: number, b: number): RGBColor => {
   z = refZ * invGamma(z);
 
   // Convert XYZ to RGB (sRGB)
-  let r = x * 3.2406 + y * -1.5372 + z * -0.4986;
-  let g = x * -0.9689 + y * 1.8758 + z * 0.0415;
-  let bVal = x * 0.0557 + y * -0.2040 + z * 1.0570;
+  const r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+  const g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+  const bVal = x * 0.0557 + y * -0.2040 + z * 1.0570;
 
   // Apply gamma correction and clamp to 0-255
   const gammaCorrect = (c: number) => {

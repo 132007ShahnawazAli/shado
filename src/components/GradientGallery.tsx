@@ -42,7 +42,7 @@ const GradientCard: React.FC<{
   itemKey: string | number;
 }> = ({ item, className = "", itemKey }) => {
   // Extract common props without the key
-  const { key: _key, ...itemWithoutKey } = item;
+  const { key, ...itemWithoutKey } = item;
   const commonProps = {
     ...itemWithoutKey,
     className: item.className || className,
@@ -71,7 +71,7 @@ const GradientCard: React.FC<{
   }
 
   // Fallback for unknown gradient types
-  console.warn(`Unknown gradient type: ${(item as any).type}`);
+  console.warn(`Unknown gradient type: ${(item as unknown as { type?: string }).type}`);
   return null;
 };
 
