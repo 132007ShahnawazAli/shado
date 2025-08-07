@@ -77,16 +77,17 @@ function BlurryBlobCard({
   const containerRef = useRef<HTMLDivElement>(null);
   const [blobs, setBlobs] = useState<Array<{ path: string; color: string }>>([]);
   
-  // Process colors to ensure they're in a valid format
+  // Process colors to ensure they're in a valid format and always an array
   const colors = useMemo(() => {
     try {
-      return processGradientColors(originalColors);
+      const processed = processGradientColors(originalColors);
+      return Array.isArray(processed) ? processed : [processed];
     } catch (error) {
       console.error('Error processing colors:', error);
       return originalColors; // Fallback to original colors if processing fails
     }
   }, [originalColors]);
-  
+
   const [bgStyle, setBgStyle] = useState(getVariantStyles(variant, colors));
   const [showExportModal, setShowExportModal] = useState(false);
   const width = 800; // or get from props/context if dynamic

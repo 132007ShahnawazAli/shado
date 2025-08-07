@@ -57,6 +57,18 @@ export async function exportGradientToCanvas({
   blobs,
   fileName = 'gradient-export',
   onComplete
+}: {
+  type: 'linear' | 'blob';
+  colors: string[];
+  angle?: number;
+  width: number;
+  height: number;
+  scale?: number;
+  format?: 'png' | 'jpg' | 'webp';
+  variant?: string;
+  blobs?: Array<{ path: string; color: string }>;
+  fileName?: string;
+  onComplete?: (success: boolean) => void;
 }) {
   const exportWidth = width * scale;
   const exportHeight = height * scale;
@@ -74,7 +86,7 @@ export async function exportGradientToCanvas({
     const x1 = exportWidth / 2 + (exportWidth / 2) * Math.cos(rad);
     const y1 = exportHeight / 2 + (exportHeight / 2) * Math.sin(rad);
     const grad = ctx.createLinearGradient(x0, y0, x1, y1);
-    colors.forEach((color, i) => {
+    colors.forEach((color: string, i: number) => {
       grad.addColorStop(i / (colors.length - 1), color);
     });
     ctx.fillStyle = grad;
@@ -91,7 +103,7 @@ export async function exportGradientToCanvas({
     }
     ctx.save();
     ctx.filter = 'blur(40px)';
-    blobs.forEach(blob => {
+    blobs.forEach((blob: { path: string; color: string }) => {
       const path = new Path2D(blob.path);
       ctx.fillStyle = blob.color;
       ctx.globalAlpha = 0.9;

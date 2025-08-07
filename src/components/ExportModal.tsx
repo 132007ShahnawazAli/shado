@@ -173,7 +173,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
         width,
         height,
         scale,
-        format: format.toLowerCase(),
+        format: format.toLowerCase() as 'png' | 'jpg' | 'webp',
         variant,
         blobs,
         fileName: `gradient-${type}`,

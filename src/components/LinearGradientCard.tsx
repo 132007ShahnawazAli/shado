@@ -24,10 +24,11 @@ function LinearGradientCard({
   const height = 450;
   const gradientRef = useRef<HTMLDivElement>(null);
   
-  // Process colors to ensure they're in a valid format
+  // Process colors to ensure they're in a valid format and always an array
   const processedColors = useMemo(() => {
     try {
-      return processGradientColors(colors);
+      const result = processGradientColors(colors);
+      return Array.isArray(result) ? result : [result];
     } catch (error) {
       console.error('Error processing colors:', error);
       return colors; // Fallback to original colors if processing fails
