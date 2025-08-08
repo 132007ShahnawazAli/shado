@@ -75,7 +75,8 @@ function BlurryBlobCard({
   ...props 
 }: BlurryBlobCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [blobs, setBlobs] = useState<Array<{ path: string; color: string }>>([]);
+  const [blobs, setBlobs] = useState<Array<{ path: string; color: string; id: string }>>([]);
+  const [shuffleKey, setShuffleKey] = useState(0);
   
   // Process colors to ensure they're in a valid format and always an array
   const colors = useMemo(() => {
@@ -100,13 +101,19 @@ function BlurryBlobCard({
     const { width, height } = container.getBoundingClientRect();
     const blobSize = Math.max(width, height) * 0.8;
 
-    const blobRegions: Region[] = ["center", ...Array.from(regions).sort(() => Math.random() - 0.5)];
-    const usedColors = colors.slice(0, Math.min(colors.length, 4));
-    const newBlobs = blobRegions.slice(0, usedColors.length).map((region, idx) => {
+    // Shuffle both regions and colors for more variety
+    const shuffledRegions: Region[] = ["center", ...Array.from(regions).sort(() => Math.random() - 0.5)];
+    const shuffledColors = [...colors].sort(() => Math.random() - 0.5).slice(0, Math.min(colors.length, 4));
+    
+    const newBlobs = shuffledRegions.slice(0, shuffledColors.length).map((region, idx) => {
       const { x, y } = getRegionOffset(region, width, height);
+      // Vary blob sizes for more visual interest
+      const sizeVariation = 0.7 + Math.random() * 0.6; // 70% to 130% of base size
+      const adjustedBlobSize = blobSize * sizeVariation;
       return {
-        path: generateBlobPath(x, y, blobSize),
-        color: usedColors[idx]
+        path: generateBlobPath(x, y, adjustedBlobSize),
+        color: shuffledColors[idx],
+        id: `blob-${idx}-${shuffleKey}`
       };
     });
 
@@ -124,7 +131,11 @@ function BlurryBlobCard({
   }, [generateBlobs]);
 
   const handleShuffle = () => {
-    generateBlobs();
+    setShuffleKey(prev => prev + 1);
+    // Add a small delay to make the shuffle more noticeable
+    setTimeout(() => {
+      generateBlobs();
+    }, 50);
   };
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -143,13 +154,14 @@ function BlurryBlobCard({
         <svg ref={svgRef} className="absolute inset-0 w-full h-full rounded-lg pointer-events-none">
           {blobs.map((blob, index) => (
             <path
-              key={index}
+              key={blob.id}
               d={blob.path}
               fill={blob.color}
               style={{
                 filter: "blur(40px)",
                 mixBlendMode: bgStyle.blendMode as React.CSSProperties["mixBlendMode"],
-                opacity: bgStyle.opacity
+                opacity: bgStyle.opacity,
+                transition: "all 0.3s ease-in-out"
               }}
             />
           ))}

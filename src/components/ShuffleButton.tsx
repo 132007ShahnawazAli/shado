@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export interface ShuffleButtonProps {
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -6,13 +6,23 @@ export interface ShuffleButtonProps {
   "aria-label"?: string;
 }
 
-const ShuffleButton: React.FC<ShuffleButtonProps> = ({ onClick, className = "", "aria-label": ariaLabel = "Shuffle" }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs font-medium shadow transition-opacity hover:opacity-80 focus:opacity-100 focus:outline-none flex items-center gap-1 ${className}`}
-    aria-label={ariaLabel}
-  >
+const ShuffleButton: React.FC<ShuffleButtonProps> = ({ onClick, className = "", "aria-label": ariaLabel = "Shuffle" }) => {
+  const [isShuffling, setIsShuffling] = useState(false);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setIsShuffling(true);
+    onClick(e);
+    // Reset the shuffling state after animation
+    setTimeout(() => setIsShuffling(false), 300);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={`px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs font-medium shadow transition-all duration-200 hover:opacity-80 focus:opacity-100 focus:outline-none flex items-center gap-1 ${className}`}
+      aria-label={ariaLabel}
+    >
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="16"
@@ -33,6 +43,7 @@ const ShuffleButton: React.FC<ShuffleButtonProps> = ({ onClick, className = "", 
     </svg>
     Shuffle
   </button>
-);
+  );
+};
 
 export default ShuffleButton;

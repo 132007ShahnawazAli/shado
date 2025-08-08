@@ -17,7 +17,7 @@ interface ExportModalProps {
   width: number;
   height: number;
   variant?: string;
-  blobs?: Array<{ path: string; color: string }>;
+  blobs?: Array<{ path: string; color: string; id?: string }>;
   elementRef?: React.RefObject<HTMLElement | SVGElement | HTMLDivElement | null>;
   onExportStart?: () => void;
   onExportComplete?: (success: boolean) => void;
@@ -206,9 +206,14 @@ const ExportModal: React.FC<ExportModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(var(--color-foreground-rgb, 0,0,0), 0.40)' }}>
       <motion.div
-        className="w-full max-w-md rounded-xl bg-white dark:bg-gray-900 shadow-lg overflow-hidden border border-gray-200 dark:border-gray-800"
+        className="w-full max-w-md rounded-xl shadow-lg overflow-hidden border"
+        style={{
+          background: 'var(--color-card, var(--background))',
+          color: 'var(--color-card-foreground, var(--foreground))',
+          borderColor: 'var(--color-border, #e5e7eb)'
+        }}
         initial={{ opacity: 0, scale: 0.98, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: 12 }}
@@ -217,10 +222,11 @@ const ExportModal: React.FC<ExportModalProps> = ({
       >
         <div className="p-5 flex flex-col gap-5">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-base font-medium text-gray-900 dark:text-white tracking-tight">Export Options</h2>
+            <h2 className="text-base font-medium tracking-tight" style={{ color: 'var(--color-card-foreground, var(--foreground))' }}>Export Options</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-full p-1 transition-colors"
+              className="rounded-full p-1 transition-colors"
+              style={{ color: 'var(--color-muted-foreground, #9ca3af)' }}
               disabled={isExporting}
               aria-label="Close export modal"
             >
@@ -232,18 +238,26 @@ const ExportModal: React.FC<ExportModalProps> = ({
 
           {/* Scale Options */}
           <div>
-            <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">Scale</h3>
+            <h3 className="text-xs font-medium mb-1 uppercase tracking-wider" style={{ color: 'var(--color-muted-foreground, #9ca3af)' }}>Scale</h3>
             <div className="flex gap-2">
               {([1, 2, 3] as const).map((value) => (
                 <button
                   key={value}
                   onClick={() => setScale(value)}
                   disabled={isExporting}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-400/30
-                    ${scale === value
-                      ? 'bg-black/80 text-white border-black/80'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'}
-                  `}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2`}
+                  style={scale === value
+                    ? {
+                        background: 'var(--color-primary, #000)',
+                        color: 'var(--color-primary-foreground, #fff)',
+                        borderColor: 'var(--color-primary, #000)'
+                      }
+                    : {
+                        background: 'var(--color-muted, #f3f4f6)',
+                        color: 'var(--color-muted-foreground, #374151)',
+                        borderColor: 'var(--color-border, #e5e7eb)'
+                      }
+                  }
                 >
                   {value}×
                 </button>
@@ -253,18 +267,26 @@ const ExportModal: React.FC<ExportModalProps> = ({
 
           {/* Format Options */}
           <div>
-            <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">Format</h3>
+            <h3 className="text-xs font-medium mb-1 uppercase tracking-wider" style={{ color: 'var(--color-muted-foreground, #9ca3af)' }}>Format</h3>
             <div className="flex gap-2">
               {(['PNG', 'JPG', 'WEBP'] as const).map((fmt) => (
                 <button
                   key={fmt}
                   onClick={() => setFormat(fmt)}
                   disabled={isExporting}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-400/30
-                    ${format === fmt
-                      ? 'bg-black/80 text-white border-black/80'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'}
-                  `}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2`}
+                  style={format === fmt
+                    ? {
+                        background: 'var(--color-primary, #000)',
+                        color: 'var(--color-primary-foreground, #fff)',
+                        borderColor: 'var(--color-primary, #000)'
+                      }
+                    : {
+                        background: 'var(--color-muted, #f3f4f6)',
+                        color: 'var(--color-muted-foreground, #374151)',
+                        borderColor: 'var(--color-border, #e5e7eb)'
+                      }
+                  }
                 >
                   {fmt}
                 </button>
@@ -273,33 +295,37 @@ const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           {/* Info Row */}
-          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between p-3 rounded-lg border" style={{ background: 'var(--color-muted, #f3f4f6)', borderColor: 'var(--color-border, #e5e7eb)' }}>
             <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Dimensions</div>
-              <div className="font-normal text-gray-900 dark:text-white text-sm">{scaledWidth} × {scaledHeight}px</div>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground, #9ca3af)' }}>Dimensions</div>
+              <div className="font-normal text-sm" style={{ color: 'var(--color-card-foreground, var(--foreground))' }}>{scaledWidth} × {scaledHeight}px</div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Estimated Size</div>
-              <div className="font-normal text-gray-900 dark:text-white text-sm">{estimatedSize}</div>
+              <div className="text-xs" style={{ color: 'var(--color-muted-foreground, #9ca3af)' }}>Estimated Size</div>
+              <div className="font-normal text-sm" style={{ color: 'var(--color-card-foreground, var(--foreground))' }}>{estimatedSize}</div>
             </div>
           </div>
 
           {/* Progress Bar & Export Button */}
           <div className="flex flex-col gap-2">
             {isExporting && (
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border, #e5e7eb)' }}>
                 <div
-                  className="h-full bg-black/80 transition-all"
-                  style={{ width: `${exportProgress}%` }}
+                  className="h-full transition-all"
+                  style={{ width: `${exportProgress}%`, background: 'var(--color-primary, #000)' }}
                 />
               </div>
             )}
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-base font-medium transition-all
-                bg-black/80 text-white hover:bg-black focus:outline-none focus:ring-2 focus:ring-indigo-400/30
-                ${isExporting ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-base font-medium transition-all focus:outline-none focus:ring-2`}
+              style={{
+                background: 'var(--color-primary, #000)',
+                color: 'var(--color-primary-foreground, #fff)',
+                opacity: isExporting ? 0.7 : 1,
+                cursor: isExporting ? 'not-allowed' : 'pointer'
+              }}
             >
               <Download className="w-5 h-5" />
               {isExporting ? 'Exporting...' : 'Export'}
